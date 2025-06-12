@@ -685,7 +685,6 @@ Public Sub ClearTableContent()
 '
     Range("D6:O189").Select
     Selection.ClearContents
-    Cells.Select
     Selection.Rows.AutoFit
 End Sub
 Public Sub GitSave()

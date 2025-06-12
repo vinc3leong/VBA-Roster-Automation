@@ -26,6 +26,5 @@ Attribute ClearTableContent.VB_ProcData.VB_Invoke_Func = " \n14"
 '
     Range("D6:O189").Select
     Selection.ClearContents
-    Cells.Select
     Selection.Rows.AutoFit
 End Sub
