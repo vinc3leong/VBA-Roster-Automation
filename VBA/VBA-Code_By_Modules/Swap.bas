@@ -31,7 +31,7 @@ Sub SwapStaff()
         MsgBox "Error: New staff name is empty. Please enter a valid personnel.", vbCritical
         Exit Sub
     End If
-
+    
     ' Prompt user to select date cells in Column A
     On Error Resume Next
     Set dateRange = Application.InputBox("Select date cells (Column A)", Type:=8)
@@ -40,13 +40,32 @@ Sub SwapStaff()
 
     ' Define slot columns: F, H, J, L, N (6, 8, 10, 12, 14)
     slotCols = Array(6, 8, 10, 12, 14)
+    
+    ' Check if oriName exists in the selected date rows across slot columns
+    Dim col As Variant
+    Dim oriNameExists As Boolean
+    oriNameExists = False
+    For Each dateCell In dateRange
+        r = dateCell.Row
+        For Each col In slotCols
+            If UCase(Trim(wsRoster.Cells(r, col).Value)) = oriName Then
+                oriNameExists = True
+                Exit For
+            End If
+        Next col
+        If oriNameExists Then Exit For
+    Next dateCell
+    
+    If Not oriNameExists Then
+        MsgBox "Error: " & oriName & " not found in the selected rows. Swap not allowed.", vbCritical
+        Exit Sub
+    End If
 
     ' Loop over selected date rows
     For Each dateCell In dateRange
         r = dateCell.Row
 
         ' Check if newName exists in the same row across all slot columns
-        Dim col As Variant
         Dim nameExists As Boolean
         nameExists = False
         For Each col In slotCols

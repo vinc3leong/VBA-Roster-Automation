@@ -17,7 +17,7 @@ Attribute ResetDutiesAOHCounter.VB_ProcData.VB_Invoke_Func = " \n14"
     Range("Desk_PersonnelList[[Weekly Duties Counter]:[AOH Counter]]").Select
     Sheets("MasterCopy").Select
 End Sub
-Sub ClearTableContent()
+Public Sub ClearTableContent()
 Attribute ClearTableContent.VB_ProcData.VB_Invoke_Func = " \n14"
 '
 ' ClearTableContent Macro

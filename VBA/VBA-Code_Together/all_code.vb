@@ -31,7 +31,7 @@ Sub SwapStaff()
         MsgBox "Error: New staff name is empty. Please enter a valid personnel.", vbCritical
         Exit Sub
     End If
-
+    
     ' Prompt user to select date cells in Column A
     On Error Resume Next
     Set dateRange = Application.InputBox("Select date cells (Column A)", Type:=8)
@@ -40,13 +40,32 @@ Sub SwapStaff()
 
     ' Define slot columns: F, H, J, L, N (6, 8, 10, 12, 14)
     slotCols = Array(6, 8, 10, 12, 14)
+    
+    ' Check if oriName exists in the selected date rows across slot columns
+    Dim col As Variant
+    Dim oriNameExists As Boolean
+    oriNameExists = False
+    For Each dateCell In dateRange
+        r = dateCell.Row
+        For Each col In slotCols
+            If UCase(Trim(wsRoster.Cells(r, col).Value)) = oriName Then
+                oriNameExists = True
+                Exit For
+            End If
+        Next col
+        If oriNameExists Then Exit For
+    Next dateCell
+    
+    If Not oriNameExists Then
+        MsgBox "Error: " & oriName & " not found in the selected rows. Swap not allowed.", vbCritical
+        Exit Sub
+    End If
 
     ' Loop over selected date rows
     For Each dateCell In dateRange
         r = dateCell.Row
 
         ' Check if newName exists in the same row across all slot columns
-        Dim col As Variant
         Dim nameExists As Boolean
         nameExists = False
         For Each col In slotCols
@@ -573,6 +592,43 @@ Private Sub Worksheet_Calculate()
     End If
 End Sub
 
+Private Sub Worksheet_Change(ByVal Target As Range)
+    ' Define the target cell (e.g., A1, adjust as needed)
+    Dim toggleCell As Range
+    Set toggleCell = Me.Range("J2") ' Change to the actual cell reference
+    
+    ' Debug: Log that the event has started
+    Debug.Print "Worksheet_Change event triggered for Target: " & Target.Address
+    
+    ' Check if the changed cell is the toggle cell
+    If Not Intersect(Target, toggleCell) Is Nothing Then
+        Dim currentValue As String
+        Static previousValue As String ' Static variable to store the previous value
+        currentValue = UCase(Trim(toggleCell.Value))
+        
+        ' Debug: Log the current and previous values
+        Debug.Print "Toggle cell (J2) current value: " & currentValue
+        Debug.Print "Toggle cell (J2) previous value: " & previousValue
+        Debug.Print "Target value before trim: |" & Target.Value & "|"
+        
+        ' Check for toggle between "JAN-JUN" and "JUL-DEC" using previous value
+        If ((previousValue = "JAN-JUN" And currentValue = "JUL-DEC") Or _
+            (previousValue = "JUL-DEC" And currentValue = "JAN-JUN")) Then
+            ' Debug: Log that the toggle condition is met
+            Debug.Print "Toggle condition met: From " & previousValue & " to " & currentValue
+            Call ClearTableContent
+        Else
+            ' Debug: Log when the toggle condition is not met
+            Debug.Print "Toggle condition not met: Previous = " & previousValue & ", Current = " & currentValue
+        End If
+        
+        ' Update the previous value for the next change
+        previousValue = currentValue
+    Else
+        ' Debug: Log when the change is outside the toggle cell
+        Debug.Print "Change detected outside toggle cell (J2): " & Target.Address
+    End If
+End Sub
 Public Sub ResetAOHCounter()
     Dim ws As Worksheet
     Dim i As Long
@@ -621,7 +677,7 @@ Sub ResetDutiesAOHCounter()
     Range("Desk_PersonnelList[[Weekly Duties Counter]:[AOH Counter]]").Select
     Sheets("MasterCopy").Select
 End Sub
-Sub ClearTableContent()
+Public Sub ClearTableContent()
 '
 ' ClearTableContent Macro
 '
