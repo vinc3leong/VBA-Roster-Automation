@@ -18,7 +18,7 @@ Sub AssignFirstEmployeeToFirstSlot()
     Dim isAohSlot As Boolean
     Dim alreadyAssigned As Boolean 'already assigned on current day
     Dim canAssign As Boolean
-    'haha
+
 
     ' Set references to sheets
     Set wsRoster = Sheets("Master")
