@@ -12,7 +12,15 @@ Sub SwapStaff()
     Dim r As Long
     Dim i As Long
     Dim lastRow As Long
-
+    Dim col As Variant
+    Dim oriNameExists As Boolean
+    Dim cellValue As String
+    Dim lines() As String
+    Dim nameExists As Boolean
+    Dim currentName As String
+    Dim cumulativeLength As Long
+    Dim startPos As Integer
+    
     ' Set worksheet references
     Set wsRoster = Sheets("MasterCopy")
     Set wsPersonnel = Sheets("PersonnelList (AOH & Desk)")
@@ -42,23 +50,27 @@ Sub SwapStaff()
     slotCols = Array(6, 8, 10, 12, 14)
     
     ' Check if oriName exists in the selected date rows across slot columns
-    Dim col As Variant
-    Dim oriNameExists As Boolean
     oriNameExists = False
     For Each dateCell In dateRange
         r = dateCell.Row
         For Each col In slotCols
-            If UCase(Trim(wsRoster.Cells(r, col).Value)) = oriName Then
-                oriNameExists = True
-                Exit For
+            cellValue = wsRoster.Cells(r, col).Value
+            If InStr(cellValue, vbNewLine) > 0 Then
+                If Trim(Split(cellValue, vbNewLine)(0)) = oriName Then
+                    oriNameExists = True
+                End If
+            Else
+                If UCase(Trim(cellValue)) = oriName Then
+                    oriNameExists = True
+                End If
             End If
+            If oriNameExists Then Exit For
         Next col
         If oriNameExists Then Exit For
     Next dateCell
     
     If Not oriNameExists Then
         MsgBox "Error: " & oriName & " not found in the selected rows. Swap not allowed.", vbCritical
-        Exit Sub
     End If
 
     ' Loop over selected date rows
@@ -66,13 +78,19 @@ Sub SwapStaff()
         r = dateCell.Row
 
         ' Check if newName exists in the same row across all slot columns
-        Dim nameExists As Boolean
         nameExists = False
         For Each col In slotCols
-            If UCase(Trim(wsRoster.Cells(r, col).Value)) = newName Then
-                nameExists = True
-                Exit For
+            cellValue = wsRoster.Cells(r, col).Value
+            If InStr(cellValue, vbNewLine) > 0 Then
+                If Trim(Split(cellValue, vbNewLine)(0)) = newName Then
+                    nameExists = True
+                End If
+            Else
+                If UCase(Trim(cellValue)) = newName Then
+                    nameExists = True
+                End If
             End If
+            If nameExists Then Exit For
         Next col
         
         If nameExists Then
@@ -80,8 +98,7 @@ Sub SwapStaff()
         Else
             For Each slotCol In slotCols
                 With wsRoster.Cells(r, slotCol)
-                    Dim currentName As String
-                    ' Determine the current name based on whether there’s a line break
+                    ' Determine the current name based on whether there is a line break
                     If InStr(.Value, vbNewLine) > 0 Then
                         currentName = Trim(Split(.Value, vbNewLine)(0)) ' First unstriked line for subsequent swaps
                     Else
@@ -95,15 +112,12 @@ Sub SwapStaff()
                         .WrapText = True
                         
                         ' Split into lines to apply strikethrough to all previous names
-                        Dim lines() As String
+            
                         lines = Split(.Value, vbNewLine)
-                        Dim k As Integer
-                        Dim cumulativeLength As Long
                         cumulativeLength = Len(newName) + 2 ' Start with newName and its vbNewLine
                         
                         ' Apply strikethrough to all lines except the first one
                         For k = 1 To UBound(lines)
-                            Dim startPos As Integer
                             startPos = cumulativeLength
                             .Characters(startPos, Len(lines(k)) + 1).Font.Strikethrough = True
                             cumulativeLength = cumulativeLength + Len(lines(k)) + 2 ' Update for next line

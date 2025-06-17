@@ -12,7 +12,15 @@ Sub SwapStaff()
     Dim r As Long
     Dim i As Long
     Dim lastRow As Long
-
+    Dim col As Variant
+    Dim oriNameExists As Boolean
+    Dim cellValue As String
+    Dim lines() As String
+    Dim nameExists As Boolean
+    Dim currentName As String
+    Dim cumulativeLength As Long
+    Dim startPos As Integer
+    
     ' Set worksheet references
     Set wsRoster = Sheets("MasterCopy")
     Set wsPersonnel = Sheets("PersonnelList (AOH & Desk)")
@@ -42,23 +50,27 @@ Sub SwapStaff()
     slotCols = Array(6, 8, 10, 12, 14)
     
     ' Check if oriName exists in the selected date rows across slot columns
-    Dim col As Variant
-    Dim oriNameExists As Boolean
     oriNameExists = False
     For Each dateCell In dateRange
         r = dateCell.Row
         For Each col In slotCols
-            If UCase(Trim(wsRoster.Cells(r, col).Value)) = oriName Then
-                oriNameExists = True
-                Exit For
+            cellValue = wsRoster.Cells(r, col).Value
+            If InStr(cellValue, vbNewLine) > 0 Then
+                If Trim(Split(cellValue, vbNewLine)(0)) = oriName Then
+                    oriNameExists = True
+                End If
+            Else
+                If UCase(Trim(cellValue)) = oriName Then
+                    oriNameExists = True
+                End If
             End If
+            If oriNameExists Then Exit For
         Next col
         If oriNameExists Then Exit For
     Next dateCell
     
     If Not oriNameExists Then
         MsgBox "Error: " & oriName & " not found in the selected rows. Swap not allowed.", vbCritical
-        Exit Sub
     End If
 
     ' Loop over selected date rows
@@ -66,13 +78,19 @@ Sub SwapStaff()
         r = dateCell.Row
 
         ' Check if newName exists in the same row across all slot columns
-        Dim nameExists As Boolean
         nameExists = False
         For Each col In slotCols
-            If UCase(Trim(wsRoster.Cells(r, col).Value)) = newName Then
-                nameExists = True
-                Exit For
+            cellValue = wsRoster.Cells(r, col).Value
+            If InStr(cellValue, vbNewLine) > 0 Then
+                If Trim(Split(cellValue, vbNewLine)(0)) = newName Then
+                    nameExists = True
+                End If
+            Else
+                If UCase(Trim(cellValue)) = newName Then
+                    nameExists = True
+                End If
             End If
+            If nameExists Then Exit For
         Next col
         
         If nameExists Then
@@ -80,8 +98,7 @@ Sub SwapStaff()
         Else
             For Each slotCol In slotCols
                 With wsRoster.Cells(r, slotCol)
-                    Dim currentName As String
-                    ' Determine the current name based on whether there’s a line break
+                    ' Determine the current name based on whether there is a line break
                     If InStr(.Value, vbNewLine) > 0 Then
                         currentName = Trim(Split(.Value, vbNewLine)(0)) ' First unstriked line for subsequent swaps
                     Else
@@ -95,15 +112,12 @@ Sub SwapStaff()
                         .WrapText = True
                         
                         ' Split into lines to apply strikethrough to all previous names
-                        Dim lines() As String
+            
                         lines = Split(.Value, vbNewLine)
-                        Dim k As Integer
-                        Dim cumulativeLength As Long
                         cumulativeLength = Len(newName) + 2 ' Start with newName and its vbNewLine
                         
                         ' Apply strikethrough to all lines except the first one
                         For k = 1 To UBound(lines)
-                            Dim startPos As Integer
                             startPos = cumulativeLength
                             .Characters(startPos, Len(lines(k)) + 1).Font.Strikethrough = True
                             cumulativeLength = cumulativeLength + Len(lines(k)) + 2 ' Update for next line
@@ -159,29 +173,6 @@ Private Sub Worksheet_Change(ByVal Target As Range)
     End If
 End Sub
 
-Sub Generate_StartDate_OfRoster()
-'
-' Generate_StartDate_OfRoster Macro
-'
-
-'
-    Range("H3").Select
-    ActiveCell.FormulaR1C1 = "=IFERROR(DATEVALUE(RC[-3]&R[-1]C[2]&R[-1]C[5]),"""")"
-    Range("H4").Select
-End Sub
-Sub Generate_EndDate_OfRoster()
-'
-' Generate_EndDate_OfRoster Macro
-'
-
-'
-    Range("K3").Select
-    ActiveCell.FormulaR1C1 = "=EOMONTH(RC[-3],0)"
-    Range("K4").Select
-End Sub
-Sub Sorting()
-
-End Sub
 
 Sub AssignFirstEmployeeToFirstSlot()
     Dim wsRoster As Worksheet
@@ -201,6 +192,7 @@ Sub AssignFirstEmployeeToFirstSlot()
     Dim isAohSlot As Boolean
     Dim alreadyAssigned As Boolean 'already assigned on current day
     Dim canAssign As Boolean
+    'haha
 
     ' Set references to sheets
     Set wsRoster = Sheets("Master")
@@ -437,8 +429,9 @@ End Sub
 
 
 
-Sub InsertStaffCounter()
+Public Sub InsertStaffCounter()
     Dim ws As Worksheet
+    Dim newRow As Long
     Dim lastRow As Long
     Dim staffName As String, dept As String
     Dim maxDuties As Variant
@@ -449,6 +442,7 @@ Sub InsertStaffCounter()
     matchRow = 0
 
     Set ws = ThisWorkbook.Sheets("PersonnelList (AOH & Desk)")
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
 
     ' Read correct cell values
     staffName = UCase(Trim(ws.Range("C3").Value)) ' Name
@@ -462,7 +456,7 @@ Sub InsertStaffCounter()
     End If
     
     ' Check for duplicate names
-    For checkRow = 10 To 1000
+    For checkRow = 10 To lastRow
         If ws.Cells(checkRow, 2).Value = staffName Then
             MsgBox "This staff name already exists. ", vbExclamation
             Exit Sub
@@ -482,23 +476,24 @@ Sub InsertStaffCounter()
 
     
     ' Find next empty row based on column B (Name)
-    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row + 1
+    newRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row + 1
 
     ' Insert data into row
-    ws.Cells(lastRow, 2).Value = staffName    ' Name
-    ws.Cells(lastRow, 3).Value = dept               ' Dept
-    ws.Cells(lastRow, 4).Value = maxDuties      ' Max Duties
+    ws.Cells(newRow, 2).Value = staffName    ' Name
+    ws.Cells(newRow, 3).Value = dept               ' Dept
+    ws.Cells(newRow, 4).Value = maxDuties      ' Max Duties
+    
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
     
     ' Set Duties Counter
     If Trim(ws.Range("C6").Value) = "" Then
-        ws.Cells(lastRow, 5).Value = 0
+        ws.Cells(newRow, 5).Value = 0
     Else
-        ws.Cells(lastRow, 5).Value = ws.Range("C6").Value
+        ws.Cells(newRow, 5).Value = ws.Range("C6").Value
     End If
     
-    ' Search column B (Name) from row 10 to 1000
-    For i = 10 To 1000
-        If ws.Cells(i, 2).Value = staffName Then
+    For i = 10 To lastRow
+        If UCase(Trim(ws.Cells(i, 2).Value)) = UCase(Trim(staffName)) Then
             matchRow = i
         Exit For
         End If
@@ -508,10 +503,10 @@ Sub InsertStaffCounter()
     If Trim(ws.Range("C7").Value) = "" Then
         ws.Cells(matchRow, 6).Value = 0
     Else
-    If Trim(ws.Range("C7").Value) > 1 Then
-        MsgBox "AOH Counter must not be more than 1.", vbExclamation
-        Exit Sub
-    End If
+        If Trim(ws.Range("C7").Value) > 1 Then
+            MsgBox "AOH Counter must not be more than 1.", vbExclamation
+            Exit Sub
+        End If
         ws.Cells(matchRow, 6).Value = ws.Range("C7").Value
     End If
 
@@ -616,7 +611,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
             (previousValue = "JUL-DEC" And currentValue = "JAN-JUN")) Then
             ' Debug: Log that the toggle condition is met
             Debug.Print "Toggle condition met: From " & previousValue & " to " & currentValue
-            Call ClearTableContent
+            Call ClearTableContent.ClearTableContent
         Else
             ' Debug: Log when the toggle condition is not met
             Debug.Print "Toggle condition not met: Previous = " & previousValue & ", Current = " & currentValue
@@ -641,21 +636,17 @@ Public Sub ResetAOHCounter()
     isAllOne = True
 
     For i = 12 To lastRow
-        If Trim(ws.Cells(i, 2).Value) <> "" Then
-            If ws.Cells(i, 6).Value <> 1 Then
-                isAllOne = False
-                
-                Exit For
-            End If
+        If ws.Cells(i, 6).Value <> 1 Then
+            isAllOne = False
+            
+            Exit For
         End If
     Next i
 
     ' Reset if all have AOH = 1
     If isAllOne Then
         For i = 12 To lastRow
-            If Trim(ws.Cells(i, 2).Value) <> "" Then
-                ws.Cells(i, 6).Value = 0
-            End If
+            ws.Cells(i, 6).Value = 0
         Next i
     End If
 End Sub
@@ -674,19 +665,9 @@ Sub ResetDutiesAOHCounter()
     Range("E12:F12").Select
     Selection.AutoFill Destination:=Range( _
         "Desk_PersonnelList[[Weekly Duties Counter]:[AOH Counter]]")
-    Range("Desk_PersonnelList[[Weekly Duties Counter]:[AOH Counter]]").Select
     Sheets("MasterCopy").Select
 End Sub
-Public Sub ClearTableContent()
-'
-' ClearTableContent Macro
-'
 
-'
-    Range("D6:O189").Select
-    Selection.ClearContents
-    Selection.Rows.AutoFit
-End Sub
 Public Sub GitSave()
     DeleteAndMake
     ExportModules
@@ -815,3 +796,13 @@ CreateLogFile_Error:
     MsgBox "Error " & Err.Number & " (" & Err.Description & ") in procedure CreateLogFile of Sub mod_TDD_Export"
 End Sub
 
+Public Sub ClearTableContent()
+'
+' ClearTableContent Macro
+'
+
+'
+    Range("D6:O189").Select
+    Selection.ClearContents
+    Selection.Rows.AutoFit
+End Sub
