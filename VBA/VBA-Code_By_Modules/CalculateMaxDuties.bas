@@ -42,13 +42,6 @@ Sub CalculateMaxDuties()
         totalAssigned = totalAssigned + rounded(i)
     Next i
     
-        
-        'maxAllowed(i) = WorksheetFunction.RoundDown(fullDuties * dutiesPercentage, 0)
-        'rounded(i) = Int(rawDuties(i))
-        'remainders(i) = rawDuties(i) - rounded(i)
-        'totalAssigned = totalAssigned + rounded(i)
-    'Next i
-    
     'Distribute remaining slots to 100% staff
     remaining = totalDuties - totalAssigned
     
