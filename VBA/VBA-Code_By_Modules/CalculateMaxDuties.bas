@@ -2,7 +2,7 @@ Attribute VB_Name = "CalculateMaxDuties"
 Sub CalculateMaxDuties()
     Dim ws As Worksheet
     Dim morningtbl As ListObject
-    Set ws = ThisWorkbook.Sheets("PersonnelList Copy")
+    Set ws = ThisWorkbook.Sheets("Morning PersonnelList")
     Set morningtbl = ws.ListObjects("MorningMainList")
 
     Dim totalDuties As Long
