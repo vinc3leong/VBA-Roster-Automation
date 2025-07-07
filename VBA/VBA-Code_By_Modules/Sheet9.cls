@@ -17,7 +17,7 @@ Private Sub Worksheet_Change(ByVal Target As Range)
         ' Sort by Duties Counter column (ascending)
         With table.Sort
             .SortFields.Clear
-            .SortFields.Add key:=table.ListColumns("Duties Counter").DataBodyRange, _
+            .SortFields.Add Key:=table.ListColumns("Duties Counter").DataBodyRange, _
                             SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
             .Header = xlYes
             .Apply
@@ -43,7 +43,10 @@ Private Sub Worksheet_Change(ByVal Target As Range)
                 
             Case "SPECIFIC DAYS"
                 ' Show the multiselect form
-                frmSpecificDays.Show
+                With frmSpecificDays
+                    .targetSheetName = Me.Name
+                    .Show
+                End With
                 Debug.Print "Showed form for Specific Days"
                 
             Case Else
