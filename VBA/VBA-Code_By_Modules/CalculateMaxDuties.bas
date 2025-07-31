@@ -10,7 +10,7 @@ Public Sub CalculateMaxDuties(dutyType As String)
     Dim totalAssigned As Long
     Dim dutiesPercentage As Double
     Dim eligibleCount As Long
-    Dim eligible100() As Long 'Store the indices of staff with 100% duty
+    Dim eligible100() As Long ' Store the indices of staff with 100% duty
     Dim j As Long
     Dim rounded() As Long
 
@@ -36,7 +36,12 @@ Public Sub CalculateMaxDuties(dutyType As String)
             Exit Sub
     End Select
 
-    totalStaff = tbl.ListRows.Count
+    ' Unprotect the worksheet
+    On Error Resume Next ' Handle case where sheet is not protected
+    ws.Unprotect ' Remove protection (add password if required, e.g., ws.Unprotect "password")
+    On Error GoTo 0
+
+    totalStaff = tbl.ListRows.count
     totalDuties = ws.Range("H6").Value
     fullDuties = WorksheetFunction.RoundDown(totalDuties / totalStaff, 0)
     remaining = 0
@@ -47,7 +52,7 @@ Public Sub CalculateMaxDuties(dutyType As String)
     
     ' Calculate initial duties and max cap
     For i = 1 To totalStaff
-        dutiesPercentage = tbl.ListRows(i).Range.Cells(tbl.ListColumns("Duties Percentage (%)").Index).Value
+        dutiesPercentage = tbl.ListRows(i).Range.Cells(GetColumnIndex(tbl, "Duties Percentage (%)")).Value
         
         If dutiesPercentage < 100 Then
             rounded(i) = CLng(fullDuties * (dutiesPercentage / 100))
@@ -77,29 +82,37 @@ Public Sub CalculateMaxDuties(dutyType As String)
     
     ' Write results back to sheet
     For i = 1 To totalStaff
-        tbl.ListRows(i).Range.Cells(tbl.ListColumns("Max Duties").Index).Value = rounded(i)
+        tbl.ListRows(i).Range.Cells(GetColumnIndex(tbl, "Max Duties")).Value = rounded(i)
     Next i
     
+    'Reprotects all personnelLists worksheet
+    Call ReprotectPersonnelLists.ReprotectPersonnelLists
     Debug.Print "Max Duties calculated for " & dutyType & " with total duties: " & totalDuties & ", total staff: " & totalStaff
 End Sub
+
 Private Function GetColumnIndex(tbl As ListObject, columnName As String) As Long
     On Error Resume Next
     GetColumnIndex = tbl.ListColumns(columnName).Index
     If Err.Number <> 0 Then GetColumnIndex = -1
     On Error GoTo 0
 End Function
+
 Sub RunMaxDutiesLMB()
     CalculateMaxDuties "LoanMailBox"
 End Sub
+
 Sub RunMaxDutiesMorning()
     CalculateMaxDuties "Morning"
 End Sub
+
 Sub RunMaxDutiesAfternoon()
     CalculateMaxDuties "Afternoon"
 End Sub
+
 Sub RunMaxDutiesAOH()
     CalculateMaxDuties "AOH"
 End Sub
+
 Sub RunMaxDutiesSatAOH()
     CalculateMaxDuties "Sat_AOH"
 End Sub
