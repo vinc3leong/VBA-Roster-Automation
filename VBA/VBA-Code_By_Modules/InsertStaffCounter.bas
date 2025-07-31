@@ -47,6 +47,13 @@ Public Sub InsertStaffCounter()
     
     ' Find next empty row based on column B (Name)
     newRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row + 1
+
+    ' Insert data into row
+    ws.Cells(newRow, 2).Value = staffName    ' Name
+    ws.Cells(newRow, 3).Value = dept               ' Dept
+    ws.Cells(newRow, 4).Value = maxDuties      ' Max Duties
+    
+    lastRow = ws.Cells(ws.Rows.Count, "B").End(xlUp).Row
     
     ' Set Duties Counter
     If Trim(ws.Range("C6").Value) = "" Then
