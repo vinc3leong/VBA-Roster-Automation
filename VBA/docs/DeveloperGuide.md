@@ -11,7 +11,6 @@ title: Developer Guide
 
 * This project use only Microsoft Excel, and Excel VBA.
 * This project does not use any external library. 
-* PlantUML styling and layout tips adapted from [se-education/guides](https://se-education.org/guides/tutorials/plantUml.html).
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -49,81 +48,65 @@ Follow the steps in this guide precisely. Things may not work out if you deviate
 
 ## **Design**
 
-<div markdown="span" class="alert alert-primary">
-
-:bulb: **Tip:** The `.puml` files used to create diagrams in this document `docs/diagrams` folder. Refer to the [_PlantUML Tutorial_ at se-edu/guides](https://se-education.org/guides/tutorials/plantUml.html) to learn how to create and edit diagrams.
-</div>
-
 ### Architecture
 
-<img src="images/ArchitectureDiagram.png" width="280" />
-
-The ***Architecture Diagram*** given above explains the high-level design of the App.
-
-Given below is a quick overview of main components and how they interact with each other.
+The program is modular, with separate subs handling each duty type and functionality.
 
 **Main components of the architecture**
 
-**`Main`** (consisting of classes [`Main`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/tassist/address/Main.java) and [`MainApp`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/tassist/address/MainApp.java)) is in charge of the app launch and shut down.
-* At app launch, it initializes the other components in the correct sequence, and connects them up with each other.
-* At shut down, it shuts down the other components and invokes cleanup methods where necessary.
+The **`Main`** sub orchestrates the entire rostering process, calling other modules in sequence.
+* Upon running, it clears the content of the current roster and populate the roster table with personnels by calling related subs.
 
-The bulk of the app's work is done by the following four components:
+The modules are categorised according to functionalities:
 
-* [**`UI`**](#ui-component): The UI of the App.
-* [**`Logic`**](#logic-component): The command executor.
-* [**`Model`**](#model-component): Holds the data of the App in memory.
-* [**`Storage`**](#storage-component): Reads data from, and writes data to, the hard disk.
+* [**`Assignment`**](): These modules containes subroutines that assign personnels to various duty types on the "Roster" sheet, respecting respective duty constraints.
+* [**`PersonnelLists`**](): These modules manages operations on personnel list sheets, including inserting or deleting staff in tables.
+* [**`Swap`**](): This module provides the functionality to swap duties between staff members on the roster.
+* [**`Analysis`**](): These modules contain subroutines related to the generation of analysis reports based on roster data.
+* [**`Utilities`**](): These modules provides subs for sheet protection, unprotection and other utility tasks.
 
-[**`Commons`**](#common-classes) represents a collection of classes used by multiple other components.
+[**`Helpers`**]() These modules contains utility subroutines that support other modules with common tasks
 
-**How the architecture components interact with each other**
+The sections below give more details of each category.
 
-The *Sequence Diagram* below shows how the components interact with each other for the scenario where the user issues the command `delete 1`.
+### Assignment
 
-<img src="images/ArchitectureSequenceDiagram.png" width="574" />
+1) **AssignSatAOHDuties Module**
 
-Each of the four main components (also shown in the diagram above),
+`AssignSatAOHDuties` sub: Iterates through the "Sat AOH PersonnelList" table and assigns available staffs to Saturday AOH duties across two columns on the "Roster" sheet. 
 
-* defines its *API* in an `interface` with the same name as the Component.
-* implements its functionality using a concrete `{Component Name}Manager` class (which follows the corresponding API `interface` mentioned in the previous point.
+The IncrementDutiesCounter helper subroutine supports this by updating the "Duties Counter" column in the personnel table for each assigned staff member.
 
-For example, the `Logic` component defines its API in the `Logic.java` interface and implements its functionality using the `LogicManager.java` class which follows the `Logic` interface. Other components interact with a given component through its interface rather than the concrete class (reason: to prevent outside component's being coupled to the implementation of a component), as illustrated in the (partial) class diagram below.
+* Constraints
+    
+    * Staff are assigned only on rows where the day is "Sat" and the respective cell is empty
+    * Assignments respect the maximum duty limit ("Max Duties") for each staff member, checked against their current duty count.
+    * Consecutive Saturday assignments are prevented, ensuring no staff is assigned to the same duty two weeks in a row.
+    * Two columns of Sat AOH duties must have two distinct staffs.
 
-<img src="images/ComponentManagers.png" width="300" />
+2) **AssignAOHDuties Module**
 
-The sections below give more details of each component.
+`AssignAOHDuties` sub: Iterates through the "AOH PersonnelList" table and the "AOHSpecificSaysWorkingStaff" table and assigns available staffs to AOH duties on the "Roster" sheet. 
 
-### UI component
+Assignment logic:
 
-The **API** of this component is specified in [`Ui.java`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/tassist/address/ui/Ui.java)
+1) First, it assigns staff with specific working days based on their defined schedules, shuffling eligible rows randomly to distribute duties evenly
+2) Then, it assigns staff with "All Days" availability to the remaining slots.
+3) Thirdly, it reassigns duties through a swapping mechanism if unfilled slots persists.
+4) If reassignment still fails after 10 maximum tries, it fallbacks to assign remaining eligible staff to unfilled slots with yellow highlighting.
 
-![Structure of the UI Component](images/UiClassDiagram.png)
+The IncrementDutiesCounter and DecrementDutiesCounter helper subroutine supports this by updating the "Duties Counter" column in the personnel table for each assigned staff member.
 
-The UI consists of a `MainWindow` that is made up of parts e.g.`CommandBox`, `ResultDisplay`, `PersonListPanel`, `StatusBarFooter` etc. All these, including the `MainWindow`, inherit from the abstract `UiPart` class which captures the commonalities between classes that represent parts of the visible GUI.
+The CheckWeeklyLimit helper subroutine supports this by ensuring that all staff assigned to the AOH duties only work a maximum of 1 AOH duties per week.
 
-The `UI` component uses the JavaFx UI framework. The layout of these UI parts are defined in matching `.fxml` files that are in the `src/main/resources/view` folder. For example, the layout of the [`MainWindow`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/java/tassist/address/ui/MainWindow.java) is specified in [`MainWindow.fxml`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/resources/view/MainWindow.fxml)
+* Constraints
+    
+    * Assignments are restricted to non-Saturday days with "SEM TIME" status and empty AOH slots.
+    * For "specific working days staff", assignments are limited by their defined working days and overall "Max Duties", with a weekly limit of one duty per staff.
+    * For "all days staff", assignments are constrained by their "Max Duties" and a weekly limit of one AOH duty per staff. Note that Sat AOH also counts as AOH duties.
+    * Reassignment and swapping ensures no staff exceeds their weekly limit, and swaps require a week with no prior duties for the eligible staff, with a maxiumum of 10 reassignment attempts.
+    * Fallback assignments highlight slots in yellow to indicate manual review may be needed.
 
-Specifically, it follows a component-based architecture:
-
-* Key UI components:
-    * `MainWindow` - The root container that orchestrates all UI components
-    * `CommandBox` - Handles user command input
-    * `PersonListPanel` - Displays the list of students
-    * `TimeEventListPanel` - Shows timed events
-    * `CalendarView` - Provides calendar visualization
-    * `PersonCard` - Renders individual student information
-    * `TimeEventCard` - Renders individual event information
-    * `ResultDisplay` - Shows command execution results
-    * `StatusBarFooter` - Displays application status
-    * `HelpWindow` - Provides help information
-
-The `UI` component,
-
-* executes user commands using the `Logic` component.
-* listens for changes to `Model` data so that the UI can be updated with the modified data.
-* keeps a reference to the `Logic` component, because the `UI` relies on the `Logic` to execute commands.
-* depends on some classes in the `Model` component, as it displays `Person` and `TimedEvent` objects residing in the `Model`.
 
 ### Logic component
 
