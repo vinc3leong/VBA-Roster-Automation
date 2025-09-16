@@ -71,19 +71,11 @@ This project automates staff rostering and generates detailed analysis reports d
 4. **Generate Analysis**
    - Run `MasterGenerateAllAnalyses`.
    - Select an `ActualRoster_*` sheet when prompted.
-   - Enter the password (`rostering2025`) if required.
+   - Enter the password if required.
    - View the generated report in `AnalysisReport_YYYYMMDD_HHMM`.
 
 5. **Review Total Summary**
    - The summary table will be generated to the right of the individual analyses.
-
----
-
-## 🔒 Passwords
-| Action                  | Password        |
-|-------------------------|-----------------|
-| Protect roster sheet    | `rostering2025` |
-| Protect analysis report | `nuslib2017@52` |
 
 ---
 
